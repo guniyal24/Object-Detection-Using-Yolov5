@@ -1,5 +1,0 @@
-Train: "Desktop/MyProjects/object detection/Object-Detection-Using-Yolov5/train/images"
-Val: "Desktop/MyProjects/object detection/Object-Detection-Using-Yolov5/valid/images"
-nc: 3
-names: ['Pen', 'Book', 'Banana']
-
