@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Object Detection App</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+        }
+        
+        .image-preview {
+            max-height: 400px;
+            object-fit: contain;
+        }
+        
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.25);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="gradient-bg py-12 mb-8">
+        <div class="container mx-auto px-4">
+            <h1 class="text-4xl font-bold text-white text-center">Object Detection</h1>
+            <p class="text-gray-100 text-center mt-2">Powered by YOLOv5</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 mb-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Upload Section -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="upload-area rounded-lg p-8 text-center mb-6">
+                    <video autoplay id="video" class="hidden mx-auto image-preview rounded-lg"></video>
+                    <img src="" id="photo" class="hidden mx-auto image-preview rounded-lg">
+                    <canvas id="canvas" class="hidden"></canvas>
+                    
+                    <div id="upload-placeholder" class="py-8">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <p class="mt-2 text-gray-600">Click to upload or drag and drop</p>
+                    </div>
+                </div>
+
+                <div class="flex space-x-4">
+                    <button type="button" id="uload" class="btn-primary flex-1 py-3 px-4 rounded-lg text-white font-medium">
+                        Upload Image
+                    </button>
+                    <button type="button" id="send" class="btn-primary flex-1 py-3 px-4 rounded-lg text-white font-medium">
+                        Detect Objects
+                    </button>
+                </div>
+                <input type="hidden" id="url" value="../predict">
+                <input type="file" id="fileinput" class="hidden" accept="image/*">
+            </div>
+
+            <!-- Results Section -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Detection Results</h2>
+                <div class="res-part2 min-h-[400px] flex items-center justify-center">
+                    <p class="text-gray-500">Results will appear here</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loading" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div class="loader mx-auto"></div>
+            <p class="mt-4 text-gray-600">Processing...</p>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        var base_data = "";
+
+        function sendRequest(base64Data) {
+            if (base64Data) {
+                var url = $("#url").val();
+                $("#loading").removeClass('hidden').addClass('flex');
+                $.ajax({
+                    url: url,
+                    type: "post",
+                    cache: false,
+                    async: true,
+                    crossDomain: true,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    data: JSON.stringify({
+                        image: base64Data
+                    }),
+                    success: function (res) {
+                        $(".res-part2").html("");
+                        var imageData = res.image;
+                        $(".res-part2").append("<img class='mx-auto max-h-[400px] rounded-lg' src='data:image/jpeg;base64," + imageData + "' alt='Detection Result' />");
+                        $("#loading").removeClass('flex').addClass('hidden');
+                    }
+                });
+            }
+        }
+
+        $(document).ready(function () {
+            $('#send').click(function (evt) {
+                sendRequest(base_data);
+            });
+
+            $('#uload').click(function (evt) {
+                $('#fileinput').focus().trigger('click');
+            });
+
+            $("#fileinput").change(function () {
+                if (this.files && this.files[0]) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        var url = e.target.result;
+                        var img = new Image();
+                        img.crossOrigin = 'Anonymous';
+                        img.onload = function () {
+                            var canvas = document.createElement('CANVAS');
+                            var ctx = canvas.getContext('2d');
+                            canvas.height = this.height;
+                            canvas.width = this.width;
+                            ctx.drawImage(this, 0, 0);
+                            base_data = canvas.toDataURL('image/jpeg', 1.0).replace(/^data:image.+;base64,/, '');
+                            canvas = null;
+                        };
+                        img.src = url;
+                        $('#photo').attr('src', url).removeClass('hidden');
+                        $('#video').addClass('hidden');
+                        $('#upload-placeholder').addClass('hidden');
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
