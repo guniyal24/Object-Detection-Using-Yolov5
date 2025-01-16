@@ -1,4 +1,4 @@
-# End-to-end Waste Detection Using YOLOv5
+# End-to-end Object Detection Using YOLOv5
 
 ## Introduction
 
